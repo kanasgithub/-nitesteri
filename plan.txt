@@ -1,0 +1,56 @@
+Pääikkuna jossa näkyy saatavilla olevat bluetooth laitteet.
+laitteeseen yhdistäminen avaa sivuikkunan jolla voi erikseen pyörittää testejä
+voi avata 3 sivuikkunaa kerralla (raspberry PI:n bluetooth rajoitukset)
+
+from gpt sensei:
+🔧 How to Control Audio on Linux (the right way)
+
+To play audio over Bluetooth or control Bluetooth audio devices, you need to use:
+
+käytä DBUS ja PipeWire
+
+1. BlueZ + PulseAudio / PipeWire
+
+Linux handles Bluetooth audio devices through:
+
+BlueZ (Bluetooth stack)
+
+PulseAudio or PipeWire (for sound routing)
+
+You can do things like:
+
+Connect audio devices
+
+Play music through them
+
+Control volume
+
+These are not accessible via PyBluez, but instead through:
+
+bluetoothctl (CLI)
+
+pactl, pacmd, or pw-cli (for audio control)
+
+D-Bus (for programmatic control — more below)
+
+
+
+✅ Want to Control Bluetooth Audio in Python?
+
+You have two main options:
+
+Option A: Use D-Bus
+
+You can interact with BlueZ and/or PulseAudio via D-Bus using Python (dbus-python or pydbus).
+
+Example things you can do:
+
+Connect/disconnect devices
+
+Monitor audio sink/source state
+
+Get battery level, name, signal strength
+
+But A2DP streaming (actual audio playback) is still managed by PulseAudio or PipeWire.
+
+If you want, I can show you example code to connect/disconnect Bluetooth audio devices or read their metadata using D-Bus.
