@@ -4,6 +4,7 @@ from pydbus import SystemBus
 import subprocess
 import time
 import threading
+import re
 def find_devices():
     
     print("Scanning for Bluetooth devices...")
@@ -51,42 +52,41 @@ threading.Thread(target=keep_scanning, daemon=True).start()
 def connect_device(mac):
     subprocess.run((["bluetoothctl","connect",mac]))
 
-def get_battery(self,mac):
-    btctl = subprocess.Popen(
-    ['bluetoothctl'],
-    stdin=subprocess.PIPE,
-    stdout=subprocess.PIPE,
-    stderr=subprocess.PIPE,
-    text=True,
-    bufsize=1
-)
+import subprocess
 
-    # Send commands
-    btctl.stdin.write('info\n')
-    
-    btctl.stdin.flush()
-
-    # Read output in a loop (optional, or just keep alive)
-    while True:
-        for line in btctl.stdout:
-            if "Battery" in line:
-                break
-            start = line.find('(')
-            end = line.find(')')
-            if start != -1 and end != -1:
-                battery_level = line[start+1:end].strip()
-                break
-    
+def get_battery(mac):
+    try:
+        btctl = subprocess.run(
+            ['bluetoothctl', 'info', mac],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
         
+        output = btctl.stdout
+
+        for line in output.splitlines():
+            if "Battery" in line:
+                # Look for a number inside parentheses, e.g., (100)
+                match = re.search(r'\((\d+)\)', line)
+                if match:
+                    battery_level = int(match.group(1))
+                    #print(f"battery_level: {battery_level}%")
+                    return battery_level
+        return "battery data not found/not supported by device"  # Battery info not found
+    except Exception as e:
+        print(f"Error: {e}")
+        return None
 
 
+    
 
 
 class databox(tk.Toplevel): #databox uusi ikkuna joka laitteelle joka on yhdistetty
     def __init__(self,name,MAC):
         super().__init__()
     
- 
+    
 
         self.geometry("400x400")
         self.name = tk.StringVar()
@@ -94,7 +94,7 @@ class databox(tk.Toplevel): #databox uusi ikkuna joka laitteelle joka on yhdiste
 
         self.name.set(name)
         self.MAC.set(MAC)
-    # ========= name-frame========= #
+    # =========name-frame========= #
         name_frame = tk.Frame(self)
         name_entry = tk.Entry(name_frame,textvariable=self.name,justify="center")
         address_label = tk.Label(name_frame,textvariable=self.MAC,justify="center")
@@ -102,12 +102,30 @@ class databox(tk.Toplevel): #databox uusi ikkuna joka laitteelle joka on yhdiste
         name_entry.grid   (row=0,column=0)
         address_label.grid(row=1,column=0)
         name_frame.pack()
+    # =========name-frame=========#
+        self.battery_level = tk.StringVar()
+        info_frame = tk.Frame(self)
+        battery_label = tk.Label(info_frame,textvariable=self.battery_level)
+
+        battery_label.grid(row=0,column=0)
+        info_frame.pack()
 
         connect_device(MAC)
+        self.looper()
         self.protocol("WM_DELETE_WINDOW", self.on_close)
     def on_close(self):
         subprocess.run(["bluetoothctl","disconnect",self.MAC.get()])
         self.destroy()
+    def looper(self):
+        battery = get_battery(self.MAC.get())
+        if battery is not None:
+            if isinstance(battery, int):
+                self.battery_level.set(f"Akku: {battery}%")
+            else:
+                self.battery_level.set(battery)
+            
+            
+        app.after(1000,self.looper)
 
 class scanlist_object(tk.Frame): #laiteikkuna joka händlää laitteet ja niiden palautuksen
 
